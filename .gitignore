@@ -1,5 +1,8 @@
-# exclude all uploads
+# exclude all uploads:
 uploaded/*
+
+# exclude file with key:
+secret_key.txt
 
 ######################
 

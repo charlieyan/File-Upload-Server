@@ -1,45 +1,51 @@
 # -*- coding: utf-8 -*-
 
 import os
-from flask import Flask, request, redirect, url_for
+from flask import Flask, request, redirect, url_for, flash, render_template
 from werkzeug.utils import secure_filename
 
-UPLOAD_FOLDER = 'uploaded'
-#ALLOWED_EXTENSIONS = set(['txt', 'pdf', 'png', 'jpg', 'jpeg', 'gif'])
+app = Flask(__name__, template_folder='templates/')
+app.config['UPLOAD_FOLDER'] = 'uploaded/'
+with open('secret_key.txt', 'r') as keyfile:
+    app.secret_key = keyfile.read()
 
-app = Flask(__name__)
-app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
+def full_path(filename):
+    return os.path.join(app.config['UPLOAD_FOLDER'], filename)
+
+def secure_file_save(file):
+    filename, file_ext = os.path.splitext(file.filename)
+    full_filename = '%s%s' % (filename, file_ext)
+    uniq = 1
+    while os.path.exists(full_path(full_filename)):
+        full_filename = '%s__(%d)%s' % (filename, uniq, file_ext)
+        uniq += 1
+
+    file.save(full_path(full_filename))
 
 @app.route('/', methods=['GET', 'POST'])
 def upload_file():
     if request.method == 'POST':
         # check if the post request has the file part
-        if 'file' not in request.files:
-            flash('No file part')
+        if 'file[]' not in request.files:
+            flash('ERROR: No file part')
             return redirect(request.url)
-        file = request.files['file']
+        files = request.files.getlist('file[]')
+        print("========>",files)
         # if user does not select file, browser also
         # submit a empty part without filename
-        if file.filename == '':
-            flash('No selected file')
-            return redirect(request.url)
-        if file:
-            filename = secure_filename(file.filename)
-            file.save(os.path.join(app.config['UPLOAD_FOLDER'], filename))
-            return redirect(request.url+'success')
-    return '''
-        <!doctype html>
-        <title>Upload new File</title>
-        <form method=post enctype=multipart/form-data>
-          <p><input type=file name=file>
-             <input type=submit value=Upload>
-        </form>
-    '''
+        filenames = []
+        for file in files:
+            if file.filename == '':
+                flash('ERROR: No selected file')
+                return redirect(request.url)
+            if file:
+                filename = secure_filename(file.filename)
+                secure_file_save(file)
+                filenames.append(filename)
+        flash(filenames)
+        return redirect(request.url+'success')
+    return render_template('index.html')
 
 @app.route('/success', methods=['GET'])
 def upload_file_check():
-    return '''
-        <!doctype html>
-        <title>File uploaded.</title>
-        <p>File uploaded.</p>
-    '''
+    return render_template('success.html')
