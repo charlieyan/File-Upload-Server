@@ -29,8 +29,7 @@ def upload_file():
         if 'file[]' not in request.files:
             flash('ERROR: No file part')
             return redirect(request.url)
-        files = request.files.getlist('file[]')
-        print("========>",files)
+        files = request.files.getlist('file[]'
         # if user does not select file, browser also
         # submit a empty part without filename
         filenames = []
